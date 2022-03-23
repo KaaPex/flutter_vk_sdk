@@ -7,7 +7,7 @@ object Results {
         return hashMapOf("isCanceled" to true)
     }
 
-    private fun accessToken(accessToken: VKAccessToken): HashMap<String, Any?> {
+    fun accessToken(accessToken: VKAccessToken): HashMap<String, Any?> {
         return hashMapOf(
             "token" to accessToken.accessToken,
             "userId" to accessToken.userId.toString(),

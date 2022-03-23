@@ -1,5 +1,6 @@
 package kaa.pex.vk_sdk
 
+import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
@@ -7,6 +8,8 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.annotation.NonNull
 import com.vk.api.sdk.VK
 import com.vk.api.sdk.VKApiCallback
+import com.vk.api.sdk.VKPreferencesKeyValueStorage
+import com.vk.api.sdk.auth.VKAccessToken
 import com.vk.api.sdk.auth.VKScope
 import com.vk.sdk.api.account.AccountService
 
@@ -24,6 +27,7 @@ class VkSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
   companion object {
     private const val getPlatformVersion = "getPlatformVersion"
     private const val getSdkVersion = "getSdkVersion"
+    private const val getAccessToken = "getAccessToken"
     private const val initSdk = "initSdk"
     private const val login = "logIn"
     private const val logout = "logOut"
@@ -31,9 +35,11 @@ class VkSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
   }
 
   private lateinit var context: Context
-  private lateinit var loginCallback: LoginCallback
+  private var loginActivityListener: LoginActivityListener? = null
+  private var loginCallback: LoginCallback? = null
   private lateinit var authLauncher: ActivityResultLauncher<Collection<VKScope>>
   private var activityPluginBinding: ActivityPluginBinding? = null
+  private var activity: Activity? = null
 
   /// The MethodChannel that will the communication between Flutter and native Android
   ///
@@ -41,16 +47,18 @@ class VkSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
   /// when the Flutter Engine is detached from the Activity
   private lateinit var channel : MethodChannel
 
-  init {
-    Log.d("VK SDK PLUGIN", "_________________________INIT")
-  }
-
   override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, "vk_sdk")
     channel.setMethodCallHandler(this)
     context = flutterPluginBinding.applicationContext
+    loginCallback = LoginCallback()
+    loginActivityListener = LoginActivityListener(loginCallback!!)
+  }
 
-    this.loginCallback = LoginCallback()
+  override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
+    channel.setMethodCallHandler(null)
+    loginCallback = null
+    loginActivityListener = null
   }
 
   override fun onAttachedToActivity(binding: ActivityPluginBinding) {
@@ -78,6 +86,9 @@ class VkSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
       getSdkVersion -> {
         sendResult(getSdkVersion(), result)
       }
+      getAccessToken -> {
+        sendResult(getAccessToken(), result)
+      }
       initSdk -> {
         val initScope = call.argument<List<String>?>(scopeArg)
         initSdk(initScope, result)
@@ -86,14 +97,13 @@ class VkSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
         val scope = call.argument<List<String>>(scopeArg) ?: listOf()
         logIn(scope, result)
       }
+      logout -> {
+        logOut()
+      }
       else -> {
         result.notImplemented()
       }
     }
-  }
-
-  override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
-    channel.setMethodCallHandler(null)
   }
 
   private fun getSdkVersion(): String {
@@ -104,6 +114,19 @@ class VkSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
       return metaData.metaData["VKSdkVersion"].toString()
     }
     return ""
+  }
+
+  private fun getAccessToken(): HashMap<String, Any?>? {
+    if (VK.isLoggedIn()) {
+      val storage = VKPreferencesKeyValueStorage(context)
+      val token = VKAccessToken.restore(storage)
+
+      if (token != null) {
+        return Results.accessToken(token)
+      }
+    }
+
+    return null
   }
 
   private fun initSdk(scope: List<String>?, @NonNull channelResult: Result) {
@@ -131,7 +154,7 @@ class VkSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
   }
 
   private fun logIn(scopes: List<String>, @NonNull result: Result) {
-    loginCallback.addPending(result)
+    loginCallback?.addPending(result)
     val list = listOf(*scopes.toTypedArray())
     val vkScopes: List<VKScope> = getScopes(list)
     // TODO: use ActivityResultLauncher
@@ -142,9 +165,13 @@ class VkSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
     // 3. Even using FlutterFragmentActivity, we get error
     // "It's requires ComponentActivity, so FlutterActivity is not applicable" on launch
     @Suppress("DEPRECATION")
-    VK.login(activityPluginBinding?.activity!!, vkScopes)
+    VK.login(activity!!, vkScopes)
 //    authLauncher = VK.login(activityPluginBinding!!.activity, loginCallback)
 //    authLauncher.launch(vkScopes)
+  }
+
+  private fun logOut() {
+    VK.logout()
   }
 
   private fun getScopes(list: List<String>): List<VKScope> {
@@ -159,11 +186,15 @@ class VkSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
   }
 
   private fun setActivity(activityPluginBinding: ActivityPluginBinding) {
+    activityPluginBinding.addActivityResultListener(loginActivityListener!!);
     this.activityPluginBinding = activityPluginBinding
+    activity = activityPluginBinding.activity
   }
 
   private fun resetActivity() {
+    activityPluginBinding?.removeActivityResultListener(loginActivityListener!!)
     activityPluginBinding = null
+    activity = null
   }
 
   private fun sendResult(data: Any?, @NonNull r: Result) {

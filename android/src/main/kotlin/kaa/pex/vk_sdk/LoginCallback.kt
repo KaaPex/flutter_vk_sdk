@@ -1,13 +1,13 @@
 package kaa.pex.vk_sdk
 
-import androidx.activity.result.ActivityResultCallback
 import com.vk.api.sdk.auth.VKAccessToken
+import com.vk.api.sdk.auth.VKAuthCallback
 import com.vk.api.sdk.auth.VKAuthenticationResult
 import com.vk.api.sdk.exceptions.VKAuthException
 
 import io.flutter.plugin.common.MethodChannel.Result
 
-class LoginCallback : ActivityResultCallback<VKAuthenticationResult> {
+class LoginCallback : VKAuthCallback {
     private var pendingResult: Result? = null
 
     fun addPending(result: Result) {
@@ -17,11 +17,11 @@ class LoginCallback : ActivityResultCallback<VKAuthenticationResult> {
         pendingResult = result
     }
 
-    private fun onLogin(token: VKAccessToken) {
+    override fun onLogin(token: VKAccessToken) {
         callResult(Results.loginSuccess(token))
     }
 
-    private fun onLoginFailed(authException: VKAuthException) {
+    override fun onLoginFailed(authException: VKAuthException) {
         if (authException.isCanceled) {
             callResult(Results.loginCancelled())
         } else {
@@ -41,10 +41,10 @@ class LoginCallback : ActivityResultCallback<VKAuthenticationResult> {
         pendingResult = null
     }
 
-    override fun onActivityResult(result: VKAuthenticationResult?) {
-        when (result) {
-            is VKAuthenticationResult.Success -> onLogin(result.token)
-            is VKAuthenticationResult.Failed -> onLoginFailed(result.exception)
-        }
-    }
+//    override fun onActivityResult(result: VKAuthenticationResult?) {
+//        when (result) {
+//            is VKAuthenticationResult.Success -> onLogin(result.token)
+//            is VKAuthenticationResult.Failed -> onLoginFailed(result.exception)
+//        }
+//    }
 }

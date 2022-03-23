@@ -79,10 +79,13 @@ class _MyAppState extends State<MyApp> {
                       Center(
                         child: Text('Vk SDK: $_sdkVersion\n'),
                       ),
+                      Center(
+                        child: Text('Token: ${token?.token}\n'),
+                      ),
                       isLogin
                           ? OutlinedButton(
                               child: const Text('Log Out'),
-                              onPressed: () {},
+                              onPressed: () => _onPressedLogoutButton,
                             )
                           : OutlinedButton(
                               child: const Text('Log In'),
@@ -106,13 +109,30 @@ class _MyAppState extends State<MyApp> {
       );
     } else {
       final loginResult = res.asValue!.value;
-      if (loginResult.isCanceled) {}
+      if (!loginResult.isCanceled) {
+        final token = await widget.vkSdkPlugin.accessToken;
+        setState(() {
+          _token = token;
+        });
+      }
     }
+  }
+
+  Future<void> _onPressedLogoutButton() async {
+    await widget.vkSdkPlugin.logOut();
+    final token = await widget.vkSdkPlugin.accessToken;
+    setState(() {
+      _token = token;
+    });
   }
 
   Future<void> _initSdk() async {
     await widget.vkSdkPlugin.initSdk();
     _sdkInitialized = true;
+    final token = await widget.vkSdkPlugin.accessToken;
+    setState(() {
+      _token = token;
+    });
   }
 
   Future<void> _getSdkVersion() async {
