@@ -2,14 +2,32 @@
 
 A VK sdk plugin based on native official Android and iOS sdk
 
-## Getting Started
+## SDK version
 
-This project is a starting point for a Flutter
-[plug-in package](https://flutter.dev/developing-packages/),
-a specialized package that includes platform-specific implementation code for
-Android and/or iOS.
+VK SDK version, used in plugin:
+* iOS: **^1.6.2** ([CocoaPods](https://cocoapods.org/pods/VK-ios-sdk))
+* Android: **3.5.1** (Maven [core](https://search.maven.org/artifact/com.vk/android-sdk-core), [api](https://search.maven.org/artifact/com.vk/android-sdk-api))
 
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Minimum requirements
 
+* iOS **9.0** and higher.
+* Android **5.0** and newer (SDK **21**). Minimum `compileSdkVersion` **31**.
+
+Features:
+* log in via VK.com;
+* get access token;
+* check if logged in;
+* log out.
+* 100% coverage of the VK API
+
+#### Initialization notes
+
+When you call `initSdk()`, plugin try to restore previous session.
+If token has been expired - it will be refreshed.
+
+Also, during restoring, log in screen may be shown to user
+(only if user was logged in).
+
+In additional, you can pass to `initSdk()` required `scope`,
+and if current user session doesn't provide it - user will be
+logged out.
