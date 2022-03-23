@@ -5,7 +5,6 @@ import android.content.pm.PackageManager
 import android.util.Log
 import androidx.activity.result.ActivityResultLauncher
 import androidx.annotation.NonNull
-import androidx.appcompat.app.AppCompatActivity
 import com.vk.api.sdk.VK
 import com.vk.api.sdk.VKApiCallback
 import com.vk.api.sdk.auth.VKScope
@@ -21,7 +20,7 @@ import io.flutter.plugin.common.MethodChannel.Result
 import java.util.*
 
 /** VkSdkPlugin */
-class VkSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware, AppCompatActivity() {
+class VkSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
   companion object {
     private const val getPlatformVersion = "getPlatformVersion"
     private const val getSdkVersion = "getSdkVersion"
