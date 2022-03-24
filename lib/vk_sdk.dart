@@ -1,7 +1,6 @@
 library vk_sdk;
 
-export 'src/models/vk_access_token.dart';
-export 'src/models/vk_scope.dart';
+export 'src/models/vk_models.dart';
 export 'src/vk_scope.dart';
 export 'src/vk_method_call.dart';
 
@@ -10,12 +9,14 @@ import 'package:async/async.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import 'src/api/vk_api.dart';
 import 'src/models/vk_scope.dart';
 import 'src/models/vk_access_token.dart';
 import 'src/models/vk_login_result.dart';
 
 class VkSdk {
   static const String _defaultScope = '';
+  static final api = VKApi();
   bool _initialized = false;
 
   // Methods
@@ -26,7 +27,9 @@ class VkSdk {
   static const _methodLogOut = 'logOut';
   static const _methodIsLoggedIn = 'isLoggedIn';
   static const _methodGetAccessToken = 'getAccessToken';
+  static const _methodGetUserId = 'getUserId';
   static const _methodGetUserProfile = 'getUserProfile';
+  static const _callMethod = 'api_method_call';
 
   /// If `true` all requests and results will be printed in console.
   final bool debug;
@@ -136,8 +139,14 @@ class VkSdk {
         : null;
   }
 
-  static Future<bool> isLoggedIn() async {
-    return await _channel.invokeMethod<bool>(_methodIsLoggedIn) ?? false;
+  static Future<bool> get isLoggedIn async {
+    final res = await _channel.invokeMethod<bool>(_methodIsLoggedIn);
+    return res ?? false;
+  }
+
+  static Future<int?> get userId async {
+    final res = await _channel.invokeMethod<String>(_methodGetUserId);
+    return int.parse(res ?? "");
   }
 
   List<String>? _getScope({List<VKScope>? scope, List<String>? customScope}) {

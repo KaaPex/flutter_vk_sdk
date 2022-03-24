@@ -22,6 +22,8 @@ class _MyAppState extends State<MyApp> {
   String? _sdkVersion;
   bool _sdkInitialized = false;
   VKAccessToken? _token;
+  int? _userId;
+  VKUserProfile? _profile;
 
   @override
   void initState() {
@@ -59,6 +61,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     final token = _token;
+    final profile = _profile;
     final isLogin = token != null;
 
     return MaterialApp(
@@ -82,6 +85,11 @@ class _MyAppState extends State<MyApp> {
                       Center(
                         child: Text('Token: ${token?.token}\n'),
                       ),
+                      if (token != null && profile != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: Text('Profile: $profile'),
+                        ),
                       isLogin
                           ? OutlinedButton(
                               child: const Text('Log Out'),
@@ -110,10 +118,7 @@ class _MyAppState extends State<MyApp> {
     } else {
       final loginResult = res.asValue!.value;
       if (!loginResult.isCanceled) {
-        final token = await widget.vkSdkPlugin.accessToken;
-        setState(() {
-          _token = token;
-        });
+        _updateLoginInfo();
       }
     }
   }
@@ -129,16 +134,35 @@ class _MyAppState extends State<MyApp> {
   Future<void> _initSdk() async {
     await widget.vkSdkPlugin.initSdk();
     _sdkInitialized = true;
-    final token = await widget.vkSdkPlugin.accessToken;
-    setState(() {
-      _token = token;
-    });
+    _updateLoginInfo();
   }
 
   Future<void> _getSdkVersion() async {
     final sdkVersion = await VkSdk.sdkVersion;
     setState(() {
       _sdkVersion = sdkVersion;
+    });
+  }
+
+  Future<void> _updateLoginInfo() async {
+    if (!_sdkInitialized) return;
+
+    final token = await widget.vkSdkPlugin.accessToken;
+    if (token == null) return;
+
+    final userId = await VkSdk.userId;
+    if (userId == null) return;
+
+    VKMethodCall call = VkSdk.api.createMethodCall('users.get');
+    call.setValue('user_ids', userId);
+    call.setValue('fields', 'online,photo_50,photo_100,photo_200');
+    var res = await call.callMethod();
+    debugPrint('[VK] $res');
+    var profile = VKUserProfile.fromMap(res[0]);
+    setState(() {
+      _token = token;
+      _userId = userId;
+      _profile = profile;
     });
   }
 }

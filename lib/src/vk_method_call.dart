@@ -1,11 +1,23 @@
 import 'dart:collection';
+import 'dart:convert';
+import 'package:async/async.dart';
 
 import 'package:flutter/services.dart';
 import 'package:vk_sdk/vk_sdk.dart';
 
 class VKMethodCall {
-  late String _channelMethod;
+  final _methodStr = 'method';
+  final _argumentsStr = 'arguments';
+  final _retryCountStr = 'retry_count';
+  final _skipValidationStr = 'skip_validation';
+  final String _channelMethod = 'api_method_call';
+  final String endpoint;
+  final int retryCount;
+  final bool skipValidation;
   final Map<dynamic, dynamic> _args = {};
+
+  VKMethodCall(this.endpoint,
+      [this.retryCount = 3, this.skipValidation = false]);
 
   MethodChannel get channel => VkSdk.channel;
   UnmodifiableMapView<dynamic, dynamic> get args => UnmodifiableMapView(_args);
@@ -44,8 +56,28 @@ class VKMethodCall {
     return _channelMethod;
   }
 
-  Future callMethod([dynamic arguments]) {
-    return channel.invokeMethod<Map<dynamic, dynamic>>(
-        getChannelMethod(), arguments);
+  Future callMethod() async {
+    final Map<String, dynamic> request = {
+      _methodStr: endpoint,
+      _retryCountStr: retryCount,
+      _skipValidationStr: skipValidation
+    };
+    if (_args.isNotEmpty) request[_argumentsStr] = _args;
+
+    try {
+      final res =
+          await channel.invokeMethod<String>(getChannelMethod(), request);
+      return parse(res!);
+    } on PlatformException catch (e) {
+      return Result.error(e);
+    }
+  }
+
+  parse(String response) {
+    return jsonDecode(response);
+  }
+
+  static Map<String, dynamic> _cast(Map items) {
+    return items.cast<String, dynamic>();
   }
 }

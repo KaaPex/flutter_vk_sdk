@@ -2,7 +2,7 @@ package kaa.pex.vk_sdk
 
 import com.vk.api.sdk.auth.VKAccessToken
 import com.vk.api.sdk.auth.VKAuthCallback
-import com.vk.api.sdk.auth.VKAuthenticationResult
+//import com.vk.api.sdk.auth.VKAuthenticationResult
 import com.vk.api.sdk.exceptions.VKAuthException
 
 import io.flutter.plugin.common.MethodChannel.Result

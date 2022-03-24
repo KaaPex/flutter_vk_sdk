@@ -1,6 +1,7 @@
 package kaa.pex.vk_sdk
 
 import com.vk.api.sdk.auth.VKAccessToken
+import org.json.JSONArray
 
 object Results {
     fun loginCancelled(): HashMap<String, Any> {

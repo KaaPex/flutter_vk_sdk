@@ -4,11 +4,9 @@ import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
-import androidx.activity.result.ActivityResultLauncher
+//import androidx.activity.result.ActivityResultLauncher
 import androidx.annotation.NonNull
-import com.vk.api.sdk.VK
-import com.vk.api.sdk.VKApiCallback
-import com.vk.api.sdk.VKPreferencesKeyValueStorage
+import com.vk.api.sdk.*
 import com.vk.api.sdk.auth.VKAccessToken
 import com.vk.api.sdk.auth.VKScope
 import com.vk.sdk.api.account.AccountService
@@ -23,21 +21,24 @@ import io.flutter.plugin.common.MethodChannel.Result
 import java.util.*
 
 /** VkSdkPlugin */
-class VkSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
+class VkSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
   companion object {
-    private const val getPlatformVersion = "getPlatformVersion"
-    private const val getSdkVersion = "getSdkVersion"
-    private const val getAccessToken = "getAccessToken"
-    private const val initSdk = "initSdk"
-    private const val login = "logIn"
-    private const val logout = "logOut"
-    private const val scopeArg = "scope"
+    private const val GET_PLATFORM_VERSION = "getPlatformVersion"
+    private const val GET_SDK_VERSION = "getSdkVersion"
+    private const val GET_ACCESS_TOKEN = "getAccessToken"
+    private const val GET_USER_ID = "getUserId"
+    private const val INIT_SDK = "initSdk"
+    private const val LOGIN = "logIn"
+    private const val LOGOUT = "logOut"
+    private const val API_METHOD_CALL = "api_method_call"
+    private const val POST_METHOD_CALL = "post_method_call"
+    private const val SCOPE_ARG = "scope"
   }
 
   private lateinit var context: Context
   private var loginActivityListener: LoginActivityListener? = null
   private var loginCallback: LoginCallback? = null
-  private lateinit var authLauncher: ActivityResultLauncher<Collection<VKScope>>
+//  private lateinit var authLauncher: ActivityResultLauncher<Collection<VKScope>>
   private var activityPluginBinding: ActivityPluginBinding? = null
   private var activity: Activity? = null
 
@@ -80,25 +81,35 @@ class VkSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
   override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
     Log.d("VK SDK PLUGIN", "_________________________CALL METHOD: ${call.method}")
     when (call.method) {
-      getPlatformVersion -> {
+      GET_PLATFORM_VERSION -> {
         result.success("Android ${android.os.Build.VERSION.RELEASE}")
       }
-      getSdkVersion -> {
+      GET_SDK_VERSION -> {
         sendResult(getSdkVersion(), result)
       }
-      getAccessToken -> {
+      GET_ACCESS_TOKEN -> {
         sendResult(getAccessToken(), result)
       }
-      initSdk -> {
-        val initScope = call.argument<List<String>?>(scopeArg)
+      GET_USER_ID -> {
+        sendResult(getUserId(), result)
+      }
+      INIT_SDK -> {
+        val initScope = call.argument<List<String>?>(SCOPE_ARG)
         initSdk(initScope, result)
       }
-      login -> {
-        val scope = call.argument<List<String>>(scopeArg) ?: listOf()
+      LOGIN -> {
+        val scope = call.argument<List<String>>(SCOPE_ARG) ?: listOf()
         logIn(scope, result)
       }
-      logout -> {
+      LOGOUT -> {
         logOut()
+      }
+      API_METHOD_CALL -> {
+        val arguments = call.arguments<Map<String, Any?>>()
+        apiMethodCall(arguments, result)
+      }
+      POST_METHOD_CALL -> {
+        result.notImplemented()
       }
       else -> {
         result.notImplemented()
@@ -126,6 +137,13 @@ class VkSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
       }
     }
 
+    return null
+  }
+
+  private fun getUserId(): String? {
+    if (VK.isLoggedIn()) {
+      return VK.getUserId().toString()
+    }
     return null
   }
 
@@ -174,6 +192,42 @@ class VkSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
     VK.logout()
   }
 
+  private fun apiMethodCall(arguments: Map<String, Any?>, @NonNull _result: Result) {
+    val methodName: String = arguments["method"] as String
+    Log.d("VK SDK PLUGIN", "___________________METHOD: $methodName")
+
+    var args: Map<String, String>? = null
+    if (arguments.containsKey("arguments")) {
+      args = arguments["arguments"] as Map<String, String>
+    }
+
+    var retryCount: Int? = null
+    if (arguments.containsKey("retry_count")) {
+      retryCount = arguments["retry_count"] as Int
+    }
+
+    var skipValidation: Boolean? = null
+    if (arguments.containsKey("skip_validation")) {
+      skipValidation = arguments["skip_validation"] as Boolean
+    }
+
+    val command = VKApiCommand(methodName, args, retryCount, skipValidation)
+    VK.execute(command, object : VKApiCallback<String?> {
+      override fun success(result: String?) {
+        if (result != null) {
+          sendResult(result, _result)
+        } else {
+          sendError(FlutterError.invalidResult("The result is null"), _result)
+        }
+      }
+
+      override fun fail(error: Exception) {
+        sendError(FlutterError.apiError("Get profile error: " + error.message,
+          VKError(0, error.message.toString())), _result)
+      }
+    })
+  }
+
   private fun getScopes(list: List<String>): List<VKScope> {
     val vkScopes: MutableList<VKScope> = ArrayList()
     val count = list.size
@@ -186,7 +240,7 @@ class VkSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
   }
 
   private fun setActivity(activityPluginBinding: ActivityPluginBinding) {
-    activityPluginBinding.addActivityResultListener(loginActivityListener!!);
+    activityPluginBinding.addActivityResultListener(loginActivityListener!!)
     this.activityPluginBinding = activityPluginBinding
     activity = activityPluginBinding.activity
   }
