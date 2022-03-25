@@ -4,6 +4,8 @@ export 'src/models/vk_models.dart';
 export 'src/vk_scope.dart';
 export 'src/vk_method_call.dart';
 
+import 'dart:convert';
+
 import 'package:async/async.dart';
 
 import 'package:flutter/services.dart';
@@ -13,6 +15,8 @@ import 'src/api/vk_api.dart';
 import 'src/models/vk_scope.dart';
 import 'src/models/vk_access_token.dart';
 import 'src/models/vk_login_result.dart';
+import 'src/models/vk_user_profile.dart';
+import 'src/vk_method_call.dart';
 
 class VkSdk {
   static const String _defaultScope = '';
@@ -28,7 +32,6 @@ class VkSdk {
   static const _methodIsLoggedIn = 'isLoggedIn';
   static const _methodGetAccessToken = 'getAccessToken';
   static const _methodGetUserId = 'getUserId';
-  static const _methodGetUserProfile = 'getUserProfile';
   static const _callMethod = 'api_method_call';
 
   /// If `true` all requests and results will be printed in console.
@@ -147,6 +150,36 @@ class VkSdk {
   static Future<int?> get userId async {
     final res = await _channel.invokeMethod<String>(_methodGetUserId);
     return int.parse(res ?? "");
+  }
+
+  Future<Result<VKUserProfile?>> getUserProfile() async {
+    if (await isLoggedIn == false) {
+      if (debug) _log('Not logged in. User profile is null');
+      return Result.value(null);
+    }
+
+    try {
+      final Map<String, dynamic> request = {
+        'method': 'users.get',
+        'retry_count': 3,
+        'skip_validation': false,
+        'arguments': <String, dynamic>{
+          'user_ids': (await userId).toString(),
+          'fields': 'online,photo_50,photo_100,photo_200'
+        }
+      };
+
+      final result = await channel.invokeMethod<String>(_callMethod, request);
+
+      if (debug) _log('User profile: $result');
+
+      return Result.value(result != null
+          ? VKUserProfile.fromMap(jsonDecode(result)[0].cast<String, dynamic>())
+          : null);
+    } on PlatformException catch (e) {
+      if (debug) _log('Get profile error: $e');
+      return Result.error(e);
+    }
   }
 
   List<String>? _getScope({List<VKScope>? scope, List<String>? customScope}) {

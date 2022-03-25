@@ -30,6 +30,7 @@ class VkSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private const val INIT_SDK = "initSdk"
     private const val LOGIN = "logIn"
     private const val LOGOUT = "logOut"
+    private const val IS_LOGGED_IN = "isLoggedIn"
     private const val API_METHOD_CALL = "api_method_call"
     private const val POST_METHOD_CALL = "post_method_call"
     private const val SCOPE_ARG = "scope"
@@ -103,6 +104,10 @@ class VkSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
       }
       LOGOUT -> {
         logOut()
+        sendResult(null, result)
+      }
+      IS_LOGGED_IN -> {
+        sendResult(VK.isLoggedIn(), result)
       }
       API_METHOD_CALL -> {
         val arguments = call.arguments<Map<String, Any?>>()
@@ -222,7 +227,7 @@ class VkSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
       }
 
       override fun fail(error: Exception) {
-        sendError(FlutterError.apiError("Get profile error: " + error.message,
+        sendError(FlutterError.apiError("Get error: " + error.message,
           VKError(0, error.message.toString())), _result)
       }
     })

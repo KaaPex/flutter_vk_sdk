@@ -67,7 +67,7 @@ class VKMethodCall {
     try {
       final res =
           await channel.invokeMethod<String>(getChannelMethod(), request);
-      return parse(res!);
+      return Result.value(parse(res!));
     } on PlatformException catch (e) {
       return Result.error(e);
     }

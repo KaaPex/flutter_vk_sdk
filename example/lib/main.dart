@@ -82,18 +82,15 @@ class _MyAppState extends State<MyApp> {
                       Center(
                         child: Text('Vk SDK: $_sdkVersion\n'),
                       ),
-                      Center(
-                        child: Text('Token: ${token?.token}\n'),
-                      ),
                       if (token != null && profile != null)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 10),
-                          child: Text('Profile: $profile'),
+                          child: _buildUserInfo(context, profile, token, ''),
                         ),
                       isLogin
                           ? OutlinedButton(
                               child: const Text('Log Out'),
-                              onPressed: () => _onPressedLogoutButton,
+                              onPressed: _onPressedLogoutButton,
                             )
                           : OutlinedButton(
                               child: const Text('Log In'),
@@ -102,6 +99,33 @@ class _MyAppState extends State<MyApp> {
                     ]),
                   ),
                 ))));
+  }
+
+  Widget _buildUserInfo(BuildContext context, VKUserProfile profile,
+      VKAccessToken accessToken, String? email) {
+    final photoUrl = profile.photo200;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('User: '),
+        Text(
+          '${profile.firstName} ${profile.lastName}',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        Text(
+          'Online: ${profile.online}, Online mobile: ${profile.onlineMobile}',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        if (photoUrl != null) Image.network(photoUrl),
+        const Text('AccessToken: '),
+        Text(
+          accessToken.token,
+          softWrap: true,
+        ),
+        Text('Created: ${accessToken.created}'),
+        if (email != null) Text('Email: $email'),
+      ],
+    );
   }
 
   Future<void> _onPressedLogInButton(BuildContext context) async {
@@ -125,10 +149,7 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> _onPressedLogoutButton() async {
     await widget.vkSdkPlugin.logOut();
-    final token = await widget.vkSdkPlugin.accessToken;
-    setState(() {
-      _token = token;
-    });
+    await _updateLoginInfo();
   }
 
   Future<void> _initSdk() async {
@@ -148,21 +169,15 @@ class _MyAppState extends State<MyApp> {
     if (!_sdkInitialized) return;
 
     final token = await widget.vkSdkPlugin.accessToken;
-    if (token == null) return;
+    final userId = token != null ? await VkSdk.userId : null;
 
-    final userId = await VkSdk.userId;
-    if (userId == null) return;
+    var profile =
+        token != null ? await widget.vkSdkPlugin.getUserProfile() : null;
 
-    VKMethodCall call = VkSdk.api.createMethodCall('users.get');
-    call.setValue('user_ids', userId);
-    call.setValue('fields', 'online,photo_50,photo_100,photo_200');
-    var res = await call.callMethod();
-    debugPrint('[VK] $res');
-    var profile = VKUserProfile.fromMap(res[0]);
     setState(() {
       _token = token;
       _userId = userId;
-      _profile = profile;
+      _profile = profile?.asValue?.value;
     });
   }
 }

@@ -28,7 +28,7 @@ class VKApiCommand(private val method: String, private val args: Map<String, Str
 
     private class ResponseApiParser : VKApiJSONResponseParser<String> {
         override fun parse(responseJson: JSONObject): String {
-            var data = "{}"
+            var data = responseJson.toString()
             try {
                 data = responseJson.getJSONObject(RESPONSE_KEY).toString()
             } catch(e: JSONException) {
