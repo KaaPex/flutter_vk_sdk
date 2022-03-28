@@ -1,6 +1,6 @@
 library vk_sdk;
 
-export 'src/models/vk_models.dart';
+export 'src/model/vk_models.dart';
 export 'src/vk_scope.dart';
 export 'src/vk_method_call.dart';
 
@@ -12,11 +12,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import 'src/api/vk_api.dart';
-import 'src/models/vk_scope.dart';
-import 'src/models/vk_access_token.dart';
-import 'src/models/vk_login_result.dart';
-import 'src/models/vk_user_profile.dart';
-import 'src/vk_method_call.dart';
+import 'src/model/vk_scope.dart';
+import 'src/model/vk_access_token.dart';
+import 'src/model/vk_login_result.dart';
+import 'src/model/vk_user_profile.dart';
 
 class VkSdk {
   static const String _defaultScope = '';
@@ -109,7 +108,8 @@ class VkSdk {
       if (res == null) {
         return Result.error('Invalid null result');
       } else {
-        return Result.value(VKLoginResult.fromMap(res.cast<String, dynamic>()));
+        return Result.value(
+            VKLoginResult.fromJson(res.cast<String, dynamic>()));
       }
     } on PlatformException catch (e) {
       if (debug) _log('Log In error: $e');
@@ -138,7 +138,7 @@ class VkSdk {
         .invokeMethod<Map<dynamic, dynamic>>(_methodGetAccessToken);
 
     return tokenResult != null
-        ? VKAccessToken.fromMap(tokenResult.cast<String, dynamic>())
+        ? VKAccessToken.fromJson(tokenResult.cast<String, dynamic>())
         : null;
   }
 
@@ -174,7 +174,8 @@ class VkSdk {
       if (debug) _log('User profile: $result');
 
       return Result.value(result != null
-          ? VKUserProfile.fromMap(jsonDecode(result)[0].cast<String, dynamic>())
+          ? VKUserProfile.fromJson(
+              jsonDecode(result)[0].cast<String, dynamic>())
           : null);
     } on PlatformException catch (e) {
       if (debug) _log('Get profile error: $e');
