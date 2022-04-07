@@ -1,5 +1,6 @@
 library vk_sdk;
 
+export 'src/constants/constants.dart';
 export 'src/model/vk_models.dart';
 export 'src/vk_scope.dart';
 export 'src/vk_method_call.dart';
@@ -12,7 +13,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import 'src/api/vk_api.dart';
-import 'src/model/vk_scope.dart';
+import 'src/constants/vk_scope.dart';
 import 'src/model/vk_access_token.dart';
 import 'src/model/vk_login_result.dart';
 import 'src/model/vk_user_profile.dart';
@@ -52,8 +53,7 @@ class VkSdk {
 
   /// Returns currently used platform version.
   static Future<String?> get platformVersion async {
-    final String? version =
-        await _channel.invokeMethod(_methodGetPlatformVersion);
+    final String? version = await _channel.invokeMethod(_methodGetPlatformVersion);
     return version;
   }
 
@@ -64,8 +64,7 @@ class VkSdk {
   /// You can pass [scope] (and/or [customScope], see [logIn])
   /// to require listed permissions. If user logged in,
   /// but doesn't have all of this permissions - he will be logged out.
-  Future<Result<bool>> initSdk(
-      {List<VKScope>? scope, List<String>? customScope}) async {
+  Future<Result<bool>> initSdk({List<VKScope>? scope, List<String>? customScope}) async {
     final scopeArg = _getScope(scope: scope, customScope: customScope);
 
     if (debug) {
@@ -91,10 +90,8 @@ class VkSdk {
     }
   }
 
-  Future<Result<VKLoginResult>> logIn(
-      {List<VKScope> scope = const [], List<String>? customScope}) async {
-    assert(_initialized,
-        'SDK is not initialized. You should call initSdk() first');
+  Future<Result<VKLoginResult>> logIn({List<VKScope> scope = const [], List<String>? customScope}) async {
+    assert(_initialized, 'SDK is not initialized. You should call initSdk() first');
     if (!_initialized) throw Exception('SDK is not initialized.');
 
     final scopeArg = _getScope(scope: scope, customScope: customScope);
@@ -102,14 +99,12 @@ class VkSdk {
     if (debug) _log('Log In with scope $scopeArg');
 
     try {
-      final res = await _channel.invokeMethod<Map<dynamic, dynamic>>(
-          _methodLogIn, {'scope': scopeArg});
+      final res = await _channel.invokeMethod<Map<dynamic, dynamic>>(_methodLogIn, {'scope': scopeArg});
 
       if (res == null) {
         return Result.error('Invalid null result');
       } else {
-        return Result.value(
-            VKLoginResult.fromJson(res.cast<String, dynamic>()));
+        return Result.value(VKLoginResult.fromJson(res.cast<String, dynamic>()));
       }
     } on PlatformException catch (e) {
       if (debug) _log('Log In error: $e');
@@ -118,8 +113,7 @@ class VkSdk {
   }
 
   Future<void> logOut() async {
-    assert(_initialized,
-        'SDK is not initialized. You should call initSdk() first');
+    assert(_initialized, 'SDK is not initialized. You should call initSdk() first');
     if (!_initialized) return;
 
     if (debug) _log('Log Out');
@@ -130,16 +124,12 @@ class VkSdk {
   ///
   /// If user is now logged in, than returns `null`.
   Future<VKAccessToken?> get accessToken async {
-    assert(_initialized,
-        'SDK is not initialized. You should call initSdk() first');
+    assert(_initialized, 'SDK is not initialized. You should call initSdk() first');
     if (!_initialized) return null;
 
-    final tokenResult = await _channel
-        .invokeMethod<Map<dynamic, dynamic>>(_methodGetAccessToken);
+    final tokenResult = await _channel.invokeMethod<Map<dynamic, dynamic>>(_methodGetAccessToken);
 
-    return tokenResult != null
-        ? VKAccessToken.fromJson(tokenResult.cast<String, dynamic>())
-        : null;
+    return tokenResult != null ? VKAccessToken.fromJson(tokenResult.cast<String, dynamic>()) : null;
   }
 
   static Future<bool> get isLoggedIn async {
@@ -173,10 +163,8 @@ class VkSdk {
 
       if (debug) _log('User profile: $result');
 
-      return Result.value(result != null
-          ? VKUserProfile.fromJson(
-              jsonDecode(result)[0].cast<String, dynamic>())
-          : null);
+      return Result.value(
+          result != null ? VKUserProfile.fromJson(jsonDecode(result)[0].cast<String, dynamic>()) : null);
     } on PlatformException catch (e) {
       if (debug) _log('Get profile error: $e');
       return Result.error(e);

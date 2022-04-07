@@ -6,7 +6,7 @@ part 'vk_access_token.g.dart';
 
 /// VK access token.
 @JsonSerializable()
-@DateTimeConverter()
+@NullDateTimeConverter()
 @BooleanConverter()
 class VKAccessToken extends Equatable {
   final String token;
@@ -30,8 +30,7 @@ class VKAccessToken extends Equatable {
       this.httpsRequired = true,
       this.expirationDate = -1]);
 
-  factory VKAccessToken.fromJson(Map<String, dynamic> json) =>
-      _$VKAccessTokenFromJson(json);
+  factory VKAccessToken.fromJson(Map<String, dynamic> json) => _$VKAccessTokenFromJson(json);
   Map<String, dynamic> toJson() => _$VKAccessTokenToJson(this);
 
   @override

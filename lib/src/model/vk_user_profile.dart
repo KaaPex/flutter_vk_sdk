@@ -25,6 +25,8 @@ class VKUserProfile extends Equatable {
   final String? statusAudio;
   @JsonKey(name: 'online_mobile')
   final bool onlineMobile;
+  @JsonKey(name: 'online_app')
+  final bool onlineApp;
   @JsonKey(name: 'photo_50')
   final String? photo50;
   @JsonKey(name: 'photo_100')
@@ -45,6 +47,7 @@ class VKUserProfile extends Equatable {
       this.statusAudio,
       this.online = false,
       this.onlineMobile = false,
+      this.onlineApp = false,
       this.photo50,
       this.photo100,
       this.photo200,
@@ -72,6 +75,7 @@ class VKUserProfile extends Equatable {
         statusAudio,
         online,
         onlineMobile,
+        onlineApp,
         photo50,
         photo100,
         photo200,

@@ -18,10 +18,13 @@ VKUserProfile _$VKUserProfileFromJson(Map<String, dynamic> json) =>
       json['status_audio'] as String?,
       json['online'] == null
           ? false
-          : const BooleanConverter().fromJson(json['online'] as int),
+          : const BooleanConverter().fromJson(json['online'] as int?),
       json['online_mobile'] == null
           ? false
-          : const BooleanConverter().fromJson(json['online_mobile'] as int),
+          : const BooleanConverter().fromJson(json['online_mobile'] as int?),
+      json['online_app'] == null
+          ? false
+          : const BooleanConverter().fromJson(json['online_app'] as int?),
       json['photo_50'] as String?,
       json['photo_100'] as String?,
       json['photo_200'] as String?,
@@ -44,6 +47,7 @@ Map<String, dynamic> _$VKUserProfileToJson(VKUserProfile instance) =>
       'status': instance.status,
       'status_audio': instance.statusAudio,
       'online_mobile': const BooleanConverter().toJson(instance.onlineMobile),
+      'online_app': const BooleanConverter().toJson(instance.onlineApp),
       'photo_50': instance.photo50,
       'photo_100': instance.photo100,
       'photo_200': instance.photo200,

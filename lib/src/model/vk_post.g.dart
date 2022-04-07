@@ -10,9 +10,12 @@ VKPost _$VKPostFromJson(Map<String, dynamic> json) => VKPost(
       json['id'] as int,
       json['owner_id'] as int,
       json['from_id'] as int,
-      const DateTimeConverter().fromJson(json['date'] as int),
+      const NullDateTimeConverter().fromJson(json['date'] as int?),
       json['created_by'] as int?,
       json['text'] as String?,
+      (json['attachments'] as List<dynamic>?)
+          ?.map((e) => VKWallAttachment.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
 
 Map<String, dynamic> _$VKPostToJson(VKPost instance) => <String, dynamic>{
@@ -20,6 +23,7 @@ Map<String, dynamic> _$VKPostToJson(VKPost instance) => <String, dynamic>{
       'owner_id': instance.ownerId,
       'from_id': instance.fromId,
       'created_by': instance.createdBy,
-      'date': const DateTimeConverter().toJson(instance.date),
+      'date': const NullDateTimeConverter().toJson(instance.date),
       'text': instance.text,
+      'attachments': instance.attachments,
     };

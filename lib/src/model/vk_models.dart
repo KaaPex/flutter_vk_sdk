@@ -1,7 +1,12 @@
 export 'vk_access_token.dart';
 export 'vk_user_profile.dart';
-export 'vk_scope.dart';
+export '../constants/vk_scope.dart';
 export 'vk_login_result.dart';
 export 'vk_user_counters.dart';
 export 'vk_post.dart';
 export 'vk_wall.dart';
+export 'vk_audio.dart';
+export 'photo/photo.dart';
+export 'vk_base_likes.dart';
+export 'vk_audio.dart';
+export 'video/video.dart';
