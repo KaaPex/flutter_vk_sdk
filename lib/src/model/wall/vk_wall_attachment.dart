@@ -2,10 +2,10 @@ import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:vk_sdk/src/constants/vk_attachment_type.dart';
 
-import 'converter.dart';
-import 'photo/vk_photo.dart';
-import 'video/vk_video.dart';
-import 'vk_audio.dart';
+import '../converter.dart';
+import '../photo/vk_photo.dart';
+import '../video/vk_video.dart';
+import '../vk_audio.dart';
 
 part 'vk_wall_attachment.g.dart';
 
