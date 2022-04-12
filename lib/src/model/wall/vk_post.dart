@@ -17,7 +17,9 @@ class VKPost extends Equatable {
   final int? createdBy;
   final DateTime? date;
   final String? text;
-  final List<VKWallAttachment>? attachments;
+  final List<VKWallAttachment?>? attachments;
+  @JsonKey(name: 'copy_history')
+  final List<VKPost>? copyHistory;
   @JsonKey(ignore: true)
   final VKUserProfile? profile;
   @JsonKey(ignore: true)
@@ -30,6 +32,7 @@ class VKPost extends Equatable {
     this.date,
     this.createdBy,
     this.text,
+    this.copyHistory,
     this.attachments,
     this.profile,
     this.group,
@@ -44,8 +47,10 @@ class VKPost extends Equatable {
     int? id,
     int? ownerId,
     int? fromId,
+    DateTime? date,
     int? createdBy,
     String? text,
+    List<VKPost>? copyHistory,
     List<VKWallAttachment>? attachments,
     VKUserProfile? profile,
     VKGroup? group,
@@ -57,6 +62,7 @@ class VKPost extends Equatable {
       date ?? this.date,
       createdBy ?? this.createdBy,
       text ?? this.text,
+      copyHistory ?? this.copyHistory,
       attachments ?? this.attachments,
       profile ?? this.profile,
       group ?? this.group,
@@ -74,6 +80,7 @@ class VKPost extends Equatable {
         createdBy,
         date,
         text,
+        copyHistory,
         attachments,
         profile,
         group,

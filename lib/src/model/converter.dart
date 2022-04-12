@@ -5,7 +5,7 @@ class NullDateTimeConverter implements JsonConverter<DateTime?, int?> {
   const NullDateTimeConverter();
 
   @override
-  DateTime? fromJson(int? json) => json != null ? DateTime.fromMillisecondsSinceEpoch(json) : null;
+  DateTime? fromJson(int? json) => json != null ? DateTime.fromMillisecondsSinceEpoch(json * 1000) : null;
 
   @override
   int? toJson(DateTime? object) => object?.millisecondsSinceEpoch;
