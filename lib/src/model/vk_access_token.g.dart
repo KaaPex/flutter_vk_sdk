@@ -10,26 +10,22 @@ VKAccessToken _$VKAccessTokenFromJson(Map<String, dynamic> json) =>
     VKAccessToken(
       json['userId'] as String,
       json['token'] as String,
-      json['secret'] as String?,
+      const BooleanConverter().fromJson(json['isValid'] as int?),
       const NullDateTimeConverter().fromJson(json['created'] as int?),
       json['email'] as String?,
+      json['secret'] as String?,
       json['phone'] as String?,
       json['phoneAccessKey'] as String?,
-      json['httpsRequired'] == null
-          ? true
-          : const BooleanConverter().fromJson(json['httpsRequired'] as int?),
-      json['expiresIn'] as int? ?? -1,
     );
 
 Map<String, dynamic> _$VKAccessTokenToJson(VKAccessToken instance) =>
     <String, dynamic>{
       'token': instance.token,
       'userId': instance.userId,
-      'secret': instance.secret,
       'created': const NullDateTimeConverter().toJson(instance.created),
       'email': instance.email,
+      'isValid': const BooleanConverter().toJson(instance.isValid),
+      'secret': instance.secret,
       'phone': instance.phone,
       'phoneAccessKey': instance.phoneAccessKey,
-      'httpsRequired': const BooleanConverter().toJson(instance.httpsRequired),
-      'expiresIn': instance.expirationDate,
     };

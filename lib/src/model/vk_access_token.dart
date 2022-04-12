@@ -11,24 +11,23 @@ part 'vk_access_token.g.dart';
 class VKAccessToken extends Equatable {
   final String token;
   final String userId;
-  final String? secret;
   final DateTime? created;
   final String? email;
+  final bool isValid;
+  final String? secret;
   final String? phone;
   final String? phoneAccessKey;
-  @JsonKey(name: 'httpsRequired')
-  final bool httpsRequired;
-  @JsonKey(name: 'expiresIn')
-  final int expirationDate;
 
-  const VKAccessToken(this.userId, this.token,
-      [this.secret,
-      this.created,
-      this.email,
-      this.phone,
-      this.phoneAccessKey,
-      this.httpsRequired = true,
-      this.expirationDate = -1]);
+  const VKAccessToken(
+    this.userId,
+    this.token,
+    this.isValid, [
+    this.created,
+    this.email,
+    this.secret,
+    this.phone,
+    this.phoneAccessKey,
+  ]);
 
   factory VKAccessToken.fromJson(Map<String, dynamic> json) => _$VKAccessTokenFromJson(json);
   Map<String, dynamic> toJson() => _$VKAccessTokenToJson(this);
@@ -37,5 +36,14 @@ class VKAccessToken extends Equatable {
   bool get stringify => true;
 
   @override
-  List<Object?> get props => [token, userId, secret, created, email];
+  List<Object?> get props => [
+        token,
+        userId,
+        created,
+        email,
+        isValid,
+        secret,
+        phone,
+        phoneAccessKey,
+      ];
 }

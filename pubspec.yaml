@@ -1,6 +1,6 @@
 name: vk_sdk
 description: A VK sdk plugin based on native official Android and iOS sdk
-version: 0.0.1
+version: 1.0.0+1
 homepage:
 
 environment:
