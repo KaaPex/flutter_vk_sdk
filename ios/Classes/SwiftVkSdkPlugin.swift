@@ -12,7 +12,6 @@ enum VkSdkPluginMethod: String {
     case logIn
     case logOut
     case isLoggedIn
-    case getUserProfile
     case api_method_call
     case post_method_call
 }
@@ -34,8 +33,8 @@ public class SwiftVkSdkPlugin: NSObject, FlutterPlugin {
         registrar.addMethodCallDelegate(instance, channel: channel)
     }
     
-    //   private lazy var _uiDelegate = VkUIDelegate()
-    //   private lazy var _loginDelegate = VkLogInDelegate()
+    private lazy var _uiDelegate = VkUIDelegate()
+    private lazy var _pluginDelegate = VkSdkPluginDelegate()
     private var _sdk: VKSdk?
     
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -55,16 +54,21 @@ public class SwiftVkSdkPlugin: NSObject, FlutterPlugin {
         case .initSdk:
             guard
                 let args = call.arguments as? [String: Any],
-                let appIdArg = args[InitSdkArg.appId.rawValue] as? String
             else {
                 result(FlutterError.invalidArgs("Arguments is invalid"))
                 return
             }
             
-            let apiVersionArg = args[InitSdkArg.apiVersion.rawValue] as? String
             let permissionsArg = args[InitSdkArg.scope.rawValue] as? [String]
+
+             guard
+                let appId = Bundle.main.object(forInfoDictionaryKey: "VKAppId") as? String
+                else {
+                    result(FlutterError.invalidArgs("App ID is not found. Please add VKAppId parameter in Info.plist"))
+                    return
+            }
             
-            result(FlutterMethodNotImplemented)
+            initSdk(result: result, appId: appId, permissions: permissionsArg)
         case .getUserId:
             result(getUserId(result: result))
         case .logIn:
@@ -81,10 +85,8 @@ public class SwiftVkSdkPlugin: NSObject, FlutterPlugin {
             logOut(result: result)
         case .isLoggedIn:
             result(VKSdk.isLoggedIn)
-        case .getUserProfile:
-            result(FlutterMethodNotImplemented)
         case .api_method_call:
-            result(FlutterMethodNotImplemented)
+            _pluginDelegate.apiMethodCall(arguments: call.arguments, result: result)
         case .post_method_call:
             result(FlutterMethodNotImplemented)
         }
@@ -98,6 +100,43 @@ public class SwiftVkSdkPlugin: NSObject, FlutterPlugin {
         let token = VKSdk.accessToken()
         result(token?.toMap())
     }
+
+    private func initSdk(result: @escaping FlutterResult, appId: String, permissions: [String]?) {
+        if let prevSdk = _sdk {
+            if prevSdk.currentAppId == appId {
+                result(true)
+                return
+            }
+
+            prevSdk.unregisterDelegate(_pluginDelegate)
+            prevSdk.uiDelegate = nil
+        }
+
+         let sdk = VKSdk.initialize(withAppId: appId)!
+
+         _sdk = sdk
+
+         sdk.uiDelegate = _uiDelegate
+         sdk.register(_pluginDelegate)
+
+         VKSdk.wakeUpSession(permissions) { state, error in
+             switch state {
+             case .initialized, .authorized:
+                 result(true)
+             case .pending, .external, .safariInApp, .webview:
+                 // Initialization complete, but log in still in progress
+                 self._pluginDelegate.waitForInit(result: result)
+             case .unknown, .error:
+                 result(FlutterError.byError(
+                     message: "Init failed. State: \(state)", error: error))
+             @unknown default:
+                 result(FlutterError.byError(
+                     message: "Init failed with unhandled state: \(state)", error: error))
+             }
+         }
+
+         result(true)
+    }
     
     private func getUserId(result: @escaping FlutterResult) {
         let token = VKSdk.accessToken()
@@ -105,13 +144,151 @@ public class SwiftVkSdkPlugin: NSObject, FlutterPlugin {
     }
     
     private func logIn(result: @escaping FlutterResult, permissions: [String]) {
-        //        _loginDelegate.startLogin(result: result)
+        _pluginDelegate.startLogin(result: result)
         VKSdk.authorize(permissions)
     }
     
     private func logOut(result: @escaping FlutterResult) {
         VKSdk.forceLogout()
         result(nil)
+    }
+}
+
+class VKAPIRequest {
+    var method: String
+    var url: String?
+    var parameters: [String: String]
+    var retryCount: Int32?
+
+    init(method: String, parameters: [String: String]?, retryCount: Int32? = 3) {
+        self.method = method
+        self.parameters = parameters ?? [:]
+        self.retryCount = retryCount
+    }
+
+    func request(completeBlock: @escaping (_ vkResponse: VKResponse<VKApiObject>?) -> Void, errorBlock: @escaping (Error?) -> Void) {
+        let newRequest: VKRequest = VKRequest(method: self.method, parameters: self.parameters)
+        newRequest.parseModel = false
+        newRequest.requestTimeout = 25
+        if let attempts = retryCount {
+            newRequest.attempts = attempts
+        }
+        newRequest.execute(resultBlock: completeBlock, errorBlock: errorBlock)
+    }
+}
+
+class VkUIDelegate : NSObject, VKSdkUIDelegate {
+    private var rootViewController: UIViewController? {
+        get {
+            let app = UIApplication.shared
+            return app.delegate?.window??.rootViewController
+        }
+    }
+
+    func vkSdkShouldPresent(_ controller: UIViewController!) {
+        guard let vc = rootViewController else {
+            // TODO: log error
+            return
+        }
+
+        vc.present(controller, animated: true)
+    }
+
+    func vkSdkNeedCaptchaEnter(_ captchaError: VKError!) {
+        guard let vc = rootViewController else {
+            // TODO: log error
+            return
+        }
+
+        let controller = VKCaptchaViewController.captchaControllerWithError(captchaError)!
+        controller.present(in: vc)
+    }
+}
+
+class VkSdkPluginDelegate : NSObject, VKSdkDelegate {
+    private var _pendingLoginResult: FlutterResult?
+    private var _pendingInitResult: FlutterResult?
+
+    func waitForInit(result: @escaping FlutterResult) {
+        if let prevResult = _pendingInitResult {
+            prevResult(FlutterError.interrupted("Interrupted by another init call"))
+        }
+
+        _pendingInitResult = result
+    }
+
+    func startLogin(result: @escaping FlutterResult) {
+        if let prevResult = _pendingLoginResult {
+            prevResult(FlutterError.interrupted("Interrupted by another login call"))
+        }
+
+        _pendingLoginResult = result
+    }
+
+    func vkSdkAccessAuthorizationFinished(with result: VKAuthorizationResult!) {
+        if let pendingResult = _pendingLoginResult {
+            _pendingLoginResult = nil
+            let response: Any
+
+            if let token = result.token {
+                response = [
+                    "accessToken": token.toMap()
+                ]
+            } else if let error = result.error {
+                let nsError = error as NSError
+                if nsError.domain == VKSdkErrorDomain, let vkError = nsError.vkError {
+                    if vkError.isCanceled() {
+                        response = [
+                            "isCanceled": true
+                        ]
+                    } else {
+                        response = FlutterError.apiError(
+                            "Login failed: \(vkError.errorMessage ?? "nil")",
+                            error: vkError)
+                    }
+                } else if nsError.isNotConnectedToInternet() {
+                    response = FlutterError.noConnection(
+                        "Login failed: not connected to Internet.")
+                } else {
+                    response = FlutterError.invalidResult(
+                        "Invalid login error: \(String(describing: error))")
+                }
+            } else {
+                response = FlutterError.invalidResult(
+                    "Invalid login result: \(String(describing: result))")
+            }
+
+            pendingResult(response)
+        } else if let pendingResult = _pendingInitResult {
+            // it's auto auth from wakeUpSession(), without authorize() call
+
+            // We don't need result here, just a fact that it's done
+            _pendingInitResult = nil
+            pendingResult(true)
+        }
+    }
+
+    func apiMethodCall(arguments: Any?, result: @escaping FlutterResult) {
+        guard let methodName = getArgument("method", from: arguments) as String? else {
+            return result(FlutterError(code: "VK API DELEGATE", message: "___________________ERROR: NO METHOD PASSED", details: nil))
+        }
+
+        print("VK API DELEGATE", "___________________METHOD: \(methodName)")
+
+        let args: Dictionary<String, String>? = getArgument("arguments", from: arguments)
+        let retryCount: Int32? = getArgument("retry_count", from: arguments)
+
+        VKAPIRequest(method: methodName, parameters: args, retryCount: retryCount).request(
+            completeBlock: { vkResult in
+                print("VK API DELEGATE", "___________________SUCCESS: \(vkResult?.responseString)")
+                result(vkResult?.responseString ?? "")
+            },
+            errorBlock: { error in
+                // TODO : common error handler
+                print("VK API DELEGATE", "___________________ERROR: \(error.debugDescription)")
+                result(FlutterError.apiError(message: "Method \(methodName) call error \(error.debugDescription)", error: error))
+            }
+        )
     }
 }
 
