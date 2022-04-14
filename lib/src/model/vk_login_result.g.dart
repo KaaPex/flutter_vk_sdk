@@ -11,11 +11,11 @@ VKLoginResult _$VKLoginResultFromJson(Map<String, dynamic> json) =>
       json['accessToken'] == null
           ? null
           : VKAccessToken.fromJson(json['accessToken'] as Map<String, dynamic>),
-      isCanceled: const BooleanConverter().fromJson(json['isCanceled'] as int?),
+      isCanceled: json['isCanceled'] as bool,
     );
 
 Map<String, dynamic> _$VKLoginResultToJson(VKLoginResult instance) =>
     <String, dynamic>{
-      'isCanceled': const BooleanConverter().toJson(instance.isCanceled),
+      'isCanceled': instance.isCanceled,
       'accessToken': instance.accessToken,
     };

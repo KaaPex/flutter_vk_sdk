@@ -8,7 +8,6 @@ part 'vk_login_result.g.dart';
 
 /// Result for login request.
 @JsonSerializable()
-@BooleanConverter()
 class VKLoginResult extends Equatable {
   /// `true` if log in process canceled by user.
   final bool isCanceled;

@@ -7,7 +7,6 @@ part 'vk_access_token.g.dart';
 /// VK access token.
 @JsonSerializable()
 @NullDateTimeConverter()
-@BooleanConverter()
 class VKAccessToken extends Equatable {
   final String token;
   final String userId;

@@ -26,6 +26,13 @@ enum LogInArg: String {
     case scope
 }
 
+func getArgument<T>(_ name: String, from arguments: Any?) -> T? {
+    guard let arguments = arguments as? [String: Any] else {
+        return nil
+    }
+    return arguments[name] as? T
+}
+
 public class SwiftVkSdkPlugin: NSObject, FlutterPlugin {
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "vk_sdk", binaryMessenger: registrar.messenger())
@@ -52,14 +59,7 @@ public class SwiftVkSdkPlugin: NSObject, FlutterPlugin {
         case .getAccessToken:
             getAccessToken(result: result)
         case .initSdk:
-            guard
-                let args = call.arguments as? [String: Any],
-            else {
-                result(FlutterError.invalidArgs("Arguments is invalid"))
-                return
-            }
-            
-            let permissionsArg = args[InitSdkArg.scope.rawValue] as? [String]
+            let permissionsArg = getArgument(InitSdkArg.scope.rawValue, from: call.arguments) as [String]?
 
              guard
                 let appId = Bundle.main.object(forInfoDictionaryKey: "VKAppId") as? String
@@ -72,14 +72,7 @@ public class SwiftVkSdkPlugin: NSObject, FlutterPlugin {
         case .getUserId:
             result(getUserId(result: result))
         case .logIn:
-            guard
-                let args = call.arguments as? [String: Any],
-                let permissionsArg = args[LogInArg.scope.rawValue] as? [String]
-            else {
-                result(FlutterError.invalidArgs("Arguments is invalid"))
-                return
-            }
-            
+            let permissionsArg = getArgument(InitSdkArg.scope.rawValue, from: call.arguments) as [String]?
             logIn(result: result, permissions: permissionsArg)
         case .logOut:
             logOut(result: result)
@@ -143,7 +136,7 @@ public class SwiftVkSdkPlugin: NSObject, FlutterPlugin {
         result(token?.userId);
     }
     
-    private func logIn(result: @escaping FlutterResult, permissions: [String]) {
+    private func logIn(result: @escaping FlutterResult, permissions: [String]?) {
         _pluginDelegate.startLogin(result: result)
         VKSdk.authorize(permissions)
     }
@@ -267,6 +260,11 @@ class VkSdkPluginDelegate : NSObject, VKSdkDelegate {
             pendingResult(true)
         }
     }
+    
+    func vkSdkUserAuthorizationFailed() {
+        // TODO: should notify application
+        print("vkSdkUserAuthorizationFailed")
+    }
 
     func apiMethodCall(arguments: Any?, result: @escaping FlutterResult) {
         guard let methodName = getArgument("method", from: arguments) as String? else {
@@ -280,13 +278,13 @@ class VkSdkPluginDelegate : NSObject, VKSdkDelegate {
 
         VKAPIRequest(method: methodName, parameters: args, retryCount: retryCount).request(
             completeBlock: { vkResult in
-                print("VK API DELEGATE", "___________________SUCCESS: \(vkResult?.responseString)")
+                print("VK API DELEGATE", "___________________SUCCESS: \(vkResult?.responseString ?? "")")
                 result(vkResult?.responseString ?? "")
             },
             errorBlock: { error in
                 // TODO : common error handler
                 print("VK API DELEGATE", "___________________ERROR: \(error.debugDescription)")
-                result(FlutterError.apiError(message: "Method \(methodName) call error \(error.debugDescription)", error: error))
+                result(FlutterError.byError(message: "Method \(methodName) call error \(error.debugDescription)", error: error))
             }
         )
     }
