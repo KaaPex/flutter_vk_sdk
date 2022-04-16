@@ -1,7 +1,7 @@
 import 'dart:collection';
 import 'dart:convert';
-import 'package:async/async.dart';
 
+import 'package:async/async.dart';
 import 'package:flutter/services.dart';
 import 'package:vk_sdk/vk_sdk.dart';
 
@@ -16,8 +16,7 @@ class VKMethodCall {
   final bool skipValidation;
   final Map<dynamic, dynamic> _args = {};
 
-  VKMethodCall(this.endpoint,
-      [this.retryCount = 3, this.skipValidation = false]);
+  VKMethodCall(this.endpoint, [this.retryCount = 3, this.skipValidation = false]);
 
   MethodChannel get channel => VkSdk.channel;
   UnmodifiableMapView<dynamic, dynamic> get args => UnmodifiableMapView(_args);
@@ -65,8 +64,7 @@ class VKMethodCall {
     if (_args.isNotEmpty) request[_argumentsStr] = _args;
 
     try {
-      final res =
-          await channel.invokeMethod<String>(getChannelMethod(), request);
+      final res = await channel.invokeMethod<String>(getChannelMethod(), request);
       return Result.value(parse(res!));
     } on PlatformException catch (e) {
       return Result.error(e);
@@ -74,7 +72,8 @@ class VKMethodCall {
   }
 
   parse(String response) {
-    return jsonDecode(response);
+    final data = jsonDecode(response);
+    return data['response'] ?? data;
   }
 
   static Map<String, dynamic> _cast(Map items) {

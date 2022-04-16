@@ -11,7 +11,6 @@ class VKApiCommand(private val method: String, private val args: Map<String, Str
                    private val retryCount: Int?, private val skipValidation: Boolean?): ApiCommand<String>() {
     companion object {
         const val RETRY_COUNT = 3
-        const val RESPONSE_KEY = "response"
     }
 
     override fun onExecute(manager: VKApiManager): String {
@@ -29,13 +28,6 @@ class VKApiCommand(private val method: String, private val args: Map<String, Str
     private class ResponseApiParser : VKApiJSONResponseParser<String> {
         override fun parse(responseJson: JSONObject): String {
             var data = responseJson.toString()
-            try {
-                data = responseJson.getJSONObject(RESPONSE_KEY).toString()
-            } catch(e: JSONException) {
-                try {
-                    data = responseJson.getJSONArray(RESPONSE_KEY).toString()
-                } catch(e: JSONException) {}
-            }
             return data
         }
     }

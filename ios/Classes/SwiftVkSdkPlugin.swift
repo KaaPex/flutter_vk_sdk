@@ -38,6 +38,7 @@ public class SwiftVkSdkPlugin: NSObject, FlutterPlugin {
         let channel = FlutterMethodChannel(name: "vk_sdk", binaryMessenger: registrar.messenger())
         let instance = SwiftVkSdkPlugin()
         registrar.addMethodCallDelegate(instance, channel: channel)
+        registrar.addApplicationDelegate(instance)
     }
     
     private lazy var _uiDelegate = VkUIDelegate()
@@ -60,26 +61,26 @@ public class SwiftVkSdkPlugin: NSObject, FlutterPlugin {
             getAccessToken(result: result)
         case .initSdk:
             let permissionsArg = getArgument(InitSdkArg.scope.rawValue, from: call.arguments) as [String]?
-
-             guard
+            
+            guard
                 let appId = Bundle.main.object(forInfoDictionaryKey: "VKAppId") as? String
-                else {
-                    result(FlutterError.invalidArgs("App ID is not found. Please add VKAppId parameter in Info.plist"))
-                    return
+            else {
+                result(FlutterError.invalidArgs("App ID is not found. Please add VKAppId parameter in Info.plist"))
+                return
             }
             
             initSdk(result: result, appId: appId, permissions: permissionsArg)
         case .getUserId:
-            result(getUserId(result: result))
+            getUserId(result: result)
         case .logIn:
             let permissionsArg = getArgument(InitSdkArg.scope.rawValue, from: call.arguments) as [String]?
             logIn(result: result, permissions: permissionsArg)
         case .logOut:
             logOut(result: result)
         case .isLoggedIn:
-            result(VKSdk.isLoggedIn)
+            result(VKSdk.isLoggedIn())
         case .api_method_call:
-            _pluginDelegate.apiMethodCall(arguments: call.arguments, result: result)
+            apiMethodCall(arguments: call.arguments, result: result)
         case .post_method_call:
             result(FlutterMethodNotImplemented)
         }
@@ -93,42 +94,50 @@ public class SwiftVkSdkPlugin: NSObject, FlutterPlugin {
         let token = VKSdk.accessToken()
         result(token?.toMap())
     }
-
+    
+    // Application delegate
+    
+    public func application(_ application: UIApplication, open url: URL,
+                            options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+        let sourceApplication = options[UIApplication.OpenURLOptionsKey.sourceApplication] as? String
+        return VKSdk.processOpen(url, fromApplication: sourceApplication)
+    }
+    
     private func initSdk(result: @escaping FlutterResult, appId: String, permissions: [String]?) {
         if let prevSdk = _sdk {
             if prevSdk.currentAppId == appId {
                 result(true)
                 return
             }
-
+            
             prevSdk.unregisterDelegate(_pluginDelegate)
             prevSdk.uiDelegate = nil
         }
-
-         let sdk = VKSdk.initialize(withAppId: appId)!
-
-         _sdk = sdk
-
-         sdk.uiDelegate = _uiDelegate
-         sdk.register(_pluginDelegate)
-
-         VKSdk.wakeUpSession(permissions) { state, error in
-             switch state {
-             case .initialized, .authorized:
-                 result(true)
-             case .pending, .external, .safariInApp, .webview:
-                 // Initialization complete, but log in still in progress
-                 self._pluginDelegate.waitForInit(result: result)
-             case .unknown, .error:
-                 result(FlutterError.byError(
-                     message: "Init failed. State: \(state)", error: error))
-             @unknown default:
-                 result(FlutterError.byError(
-                     message: "Init failed with unhandled state: \(state)", error: error))
-             }
-         }
-
-         result(true)
+        
+        let sdk = VKSdk.initialize(withAppId: appId)!
+        
+        _sdk = sdk
+        
+        sdk.uiDelegate = _uiDelegate
+        sdk.register(_pluginDelegate)
+        
+        VKSdk.wakeUpSession(permissions) { state, error in
+            switch state {
+            case .initialized, .authorized:
+                result(true)
+            case .pending, .external, .safariInApp, .webview:
+                // Initialization complete, but log in still in progress
+                self._pluginDelegate.waitForInit(result: result)
+            case .unknown, .error:
+                result(FlutterError.byError(
+                    message: "Init failed. State: \(state)", error: error))
+            @unknown default:
+                result(FlutterError.byError(
+                    message: "Init failed with unhandled state: \(state)", error: error))
+            }
+        }
+        
+        result(true)
     }
     
     private func getUserId(result: @escaping FlutterResult) {
@@ -145,6 +154,29 @@ public class SwiftVkSdkPlugin: NSObject, FlutterPlugin {
         VKSdk.forceLogout()
         result(nil)
     }
+    
+    func apiMethodCall(arguments: Any?, result: @escaping FlutterResult) {
+        guard let methodName = getArgument("method", from: arguments) as String? else {
+            return result(FlutterError(code: "VK API DELEGATE", message: "___________________ERROR: NO METHOD PASSED", details: nil))
+        }
+        
+        print("VK API DELEGATE", "___________________METHOD: \(methodName)")
+        
+        let args: Dictionary<String, String>? = getArgument("arguments", from: arguments)
+        let retryCount: Int32? = getArgument("retry_count", from: arguments)
+        
+        VKAPIRequest(method: methodName, parameters: args, retryCount: retryCount).request(
+            completeBlock: { vkResult in
+                print("VK API DELEGATE", "___________________SUCCESS: \(vkResult?.responseString ?? "")")
+                result(vkResult?.responseString)
+            },
+            errorBlock: { error in
+                // TODO : common error handler
+                print("VK API DELEGATE", "___________________ERROR: \(error.debugDescription)")
+                result(FlutterError.byError(message: "Method \(methodName) call error \(error.debugDescription)", error: error))
+            }
+        )
+    }
 }
 
 class VKAPIRequest {
@@ -152,13 +184,13 @@ class VKAPIRequest {
     var url: String?
     var parameters: [String: String]
     var retryCount: Int32?
-
+    
     init(method: String, parameters: [String: String]?, retryCount: Int32? = 3) {
         self.method = method
         self.parameters = parameters ?? [:]
         self.retryCount = retryCount
     }
-
+    
     func request(completeBlock: @escaping (_ vkResponse: VKResponse<VKApiObject>?) -> Void, errorBlock: @escaping (Error?) -> Void) {
         let newRequest: VKRequest = VKRequest(method: self.method, parameters: self.parameters)
         newRequest.parseModel = false
@@ -177,22 +209,22 @@ class VkUIDelegate : NSObject, VKSdkUIDelegate {
             return app.delegate?.window??.rootViewController
         }
     }
-
+    
     func vkSdkShouldPresent(_ controller: UIViewController!) {
         guard let vc = rootViewController else {
             // TODO: log error
             return
         }
-
+        
         vc.present(controller, animated: true)
     }
-
+    
     func vkSdkNeedCaptchaEnter(_ captchaError: VKError!) {
         guard let vc = rootViewController else {
             // TODO: log error
             return
         }
-
+        
         let controller = VKCaptchaViewController.captchaControllerWithError(captchaError)!
         controller.present(in: vc)
     }
@@ -201,28 +233,28 @@ class VkUIDelegate : NSObject, VKSdkUIDelegate {
 class VkSdkPluginDelegate : NSObject, VKSdkDelegate {
     private var _pendingLoginResult: FlutterResult?
     private var _pendingInitResult: FlutterResult?
-
+    
     func waitForInit(result: @escaping FlutterResult) {
         if let prevResult = _pendingInitResult {
             prevResult(FlutterError.interrupted("Interrupted by another init call"))
         }
-
+        
         _pendingInitResult = result
     }
-
+    
     func startLogin(result: @escaping FlutterResult) {
         if let prevResult = _pendingLoginResult {
             prevResult(FlutterError.interrupted("Interrupted by another login call"))
         }
-
+        
         _pendingLoginResult = result
     }
-
+    
     func vkSdkAccessAuthorizationFinished(with result: VKAuthorizationResult!) {
         if let pendingResult = _pendingLoginResult {
             _pendingLoginResult = nil
             let response: Any
-
+            
             if let token = result.token {
                 response = [
                     "accessToken": token.toMap()
@@ -250,11 +282,11 @@ class VkSdkPluginDelegate : NSObject, VKSdkDelegate {
                 response = FlutterError.invalidResult(
                     "Invalid login result: \(String(describing: result))")
             }
-
+            
             pendingResult(response)
         } else if let pendingResult = _pendingInitResult {
             // it's auto auth from wakeUpSession(), without authorize() call
-
+            
             // We don't need result here, just a fact that it's done
             _pendingInitResult = nil
             pendingResult(true)
@@ -264,29 +296,6 @@ class VkSdkPluginDelegate : NSObject, VKSdkDelegate {
     func vkSdkUserAuthorizationFailed() {
         // TODO: should notify application
         print("vkSdkUserAuthorizationFailed")
-    }
-
-    func apiMethodCall(arguments: Any?, result: @escaping FlutterResult) {
-        guard let methodName = getArgument("method", from: arguments) as String? else {
-            return result(FlutterError(code: "VK API DELEGATE", message: "___________________ERROR: NO METHOD PASSED", details: nil))
-        }
-
-        print("VK API DELEGATE", "___________________METHOD: \(methodName)")
-
-        let args: Dictionary<String, String>? = getArgument("arguments", from: arguments)
-        let retryCount: Int32? = getArgument("retry_count", from: arguments)
-
-        VKAPIRequest(method: methodName, parameters: args, retryCount: retryCount).request(
-            completeBlock: { vkResult in
-                print("VK API DELEGATE", "___________________SUCCESS: \(vkResult?.responseString ?? "")")
-                result(vkResult?.responseString ?? "")
-            },
-            errorBlock: { error in
-                // TODO : common error handler
-                print("VK API DELEGATE", "___________________ERROR: \(error.debugDescription)")
-                result(FlutterError.byError(message: "Method \(methodName) call error \(error.debugDescription)", error: error))
-            }
-        )
     }
 }
 

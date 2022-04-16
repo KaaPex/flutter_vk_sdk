@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:vk_sdk/vk_sdk.dart';
 
@@ -42,8 +42,7 @@ class _MyAppState extends State<MyApp> {
     // Platform messages may fail, so we use a try/catch PlatformException.
     // We also handle the message potentially returning null.
     try {
-      platformVersion =
-          await VkSdk.platformVersion ?? 'Unknown platform version';
+      platformVersion = await VkSdk.platformVersion ?? 'Unknown platform version';
     } on PlatformException {
       platformVersion = 'Failed to get platform version.';
     }
@@ -71,8 +70,7 @@ class _MyAppState extends State<MyApp> {
               title: const Text('Plugin example app'),
             ),
             body: Padding(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 18.0, horizontal: 8.0),
+                padding: const EdgeInsets.symmetric(vertical: 18.0, horizontal: 8.0),
                 child: Builder(
                   builder: (context) => Center(
                     child: Column(children: [
@@ -101,8 +99,7 @@ class _MyAppState extends State<MyApp> {
                 ))));
   }
 
-  Widget _buildUserInfo(BuildContext context, VKUserProfile profile,
-      VKAccessToken accessToken, String? email) {
+  Widget _buildUserInfo(BuildContext context, VKUserProfile profile, VKAccessToken accessToken, String? email) {
     final photoUrl = profile.photo200;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,8 +168,7 @@ class _MyAppState extends State<MyApp> {
     final token = await widget.vkSdkPlugin.accessToken;
     final userId = token != null ? await VkSdk.userId : null;
 
-    var profile =
-        token != null ? await widget.vkSdkPlugin.getUserProfile() : null;
+    var profile = token != null ? await widget.vkSdkPlugin.getUserProfile() : null;
 
     setState(() {
       _token = token;

@@ -1,14 +1,8 @@
 library vk_sdk;
 
-export 'src/constants/constants.dart';
-export 'src/model/vk_models.dart';
-export 'src/vk_scope.dart';
-export 'src/vk_method_call.dart';
-
 import 'dart:convert';
 
 import 'package:async/async.dart';
-
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -17,6 +11,11 @@ import 'src/constants/vk_scope.dart';
 import 'src/model/vk_access_token.dart';
 import 'src/model/vk_login_result.dart';
 import 'src/model/vk_user_profile.dart';
+
+export 'src/constants/constants.dart';
+export 'src/model/vk_models.dart';
+export 'src/vk_method_call.dart';
+export 'src/vk_scope.dart';
 
 class VkSdk {
   static const String _defaultScope = '';
@@ -67,10 +66,7 @@ class VkSdk {
   Future<Result<bool>> initSdk({List<VKScope>? scope, List<String>? customScope}) async {
     final scopeArg = _getScope(scope: scope, customScope: customScope);
 
-    if (debug) {
-      final log = StringBuffer('initSdk');
-      if (scopeArg != null) log.write('. Permissions: $scopeArg');
-    }
+    _log('InitSdk with scope $scopeArg');
 
     try {
       final result = await _channel.invokeMethod<bool>(_methodInitSdk, {
@@ -85,7 +81,7 @@ class VkSdk {
         return Result.error('Init SDK failed');
       }
     } on PlatformException catch (e) {
-      if (debug) _log('Init SDK error: $e');
+      _log('Init SDK error: $e');
       return Result.error(e);
     }
   }
@@ -96,7 +92,7 @@ class VkSdk {
 
     final scopeArg = _getScope(scope: scope, customScope: customScope);
 
-    if (debug) _log('Log In with scope $scopeArg');
+    _log('Log In with scope $scopeArg');
 
     try {
       final res = await _channel.invokeMethod<Map<dynamic, dynamic>>(_methodLogIn, {'scope': scopeArg});
@@ -107,7 +103,7 @@ class VkSdk {
         return Result.value(VKLoginResult.fromJson(res.cast<String, dynamic>()));
       }
     } on PlatformException catch (e) {
-      if (debug) _log('Log In error: $e');
+      _log('Log In error: $e');
       return Result.error(e);
     }
   }
@@ -116,7 +112,7 @@ class VkSdk {
     assert(_initialized, 'SDK is not initialized. You should call initSdk() first');
     if (!_initialized) return;
 
-    if (debug) _log('Log Out');
+    _log('Log Out');
     await _channel.invokeMethod<void>(_methodLogOut);
   }
 
@@ -144,7 +140,7 @@ class VkSdk {
 
   Future<Result<VKUserProfile?>> getUserProfile() async {
     if (await isLoggedIn == false) {
-      if (debug) _log('Not logged in. User profile is null');
+      _log('Not logged in. User profile is null');
       return Result.value(null);
     }
 
@@ -161,12 +157,12 @@ class VkSdk {
 
       final result = await channel.invokeMethod<String>(_callMethod, request);
 
-      if (debug) _log('User profile: $result');
+      _log('User profile: $result');
 
       return Result.value(
-          result != null ? VKUserProfile.fromJson(jsonDecode(result)[0].cast<String, dynamic>()) : null);
+          result != null ? VKUserProfile.fromJson(jsonDecode(result)['response'][0].cast<String, dynamic>()) : null);
     } on PlatformException catch (e) {
-      if (debug) _log('Get profile error: $e');
+      _log('Get profile error: $e');
       return Result.error(e);
     }
   }
