@@ -3,7 +3,7 @@ import 'package:json_annotation/json_annotation.dart';
 import 'package:vk_sdk/src/constants/constants.dart';
 
 import '../converter.dart';
-import '../vk_base_likes.dart';
+import '../base/vk_base_likes.dart';
 import 'vk_video_image.dart';
 import 'vk_video_repost.dart';
 

@@ -5,3 +5,4 @@ export 'vk_scope.dart';
 export 'vk_scope_community.dart';
 export 'vk_video_type.dart';
 export 'vk_video_live_status.dart';
+export 'vk_feed_item_type.dart';

@@ -77,3 +77,13 @@ class VKAudioGenreConverter implements JsonConverter<VKAudioGenre, int> {
   @override
   int toJson(VKAudioGenre object) => object.code;
 }
+
+class VKFeedItemTypeConverter implements JsonConverter<VKFeedItemType, String> {
+  const VKFeedItemTypeConverter();
+
+  @override
+  VKFeedItemType fromJson(String json) => VKFeedItemType.values.asNameMap()[json] ?? VKFeedItemType.unknown;
+
+  @override
+  String toJson(VKFeedItemType object) => object.name;
+}

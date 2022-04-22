@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'vk_user_counters.dart';
 
-import 'converter.dart';
+import '../converter.dart';
 
 part 'vk_user_profile.g.dart';
 

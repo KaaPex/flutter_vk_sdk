@@ -10,7 +10,7 @@ import 'src/api/vk_api.dart';
 import 'src/constants/vk_scope.dart';
 import 'src/model/vk_access_token.dart';
 import 'src/model/vk_login_result.dart';
-import 'src/model/vk_user_profile.dart';
+import 'src/model/base/base.dart';
 
 export 'src/constants/constants.dart';
 export 'src/model/vk_models.dart';
@@ -18,7 +18,6 @@ export 'src/vk_method_call.dart';
 export 'src/vk_scope.dart';
 
 class VkSdk {
-  static const String _defaultScope = '';
   static final api = VKApi();
   bool _initialized = false;
 
